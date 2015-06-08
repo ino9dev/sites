@@ -1,0 +1,32 @@
+# range operatorを使う
+(1..10) | % {Write $_}
+# alias
+(1..10) | ForEach {Write $_}
+(1..10) | ForEach-Object {Write $_}
+
+# base64の文字列をencodeする
+Write-Host -NoNewline [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("TEST!#$%&'()"))
+
+# 44KByteのサイズの任意の文字列のファイルを生成する
+New-Item -Type file -Value  test
+
+# random walk
+(1..100000) | % {@("a","b") | Get-Random} > randomwalk.data
+
+# urlencodeを行う
+# デフォルトではライブラリがロードされていないのでしておく
+Add-Type -AssemblyName System.Web
+Write [System.Web.HttpUtility]::UrlEncode("getparam=!#$%&'(")
+
+# urldecodeを行う
+[System.Web.HttpUtility]::UrlDecode
+
+# basic認証用の文字列を生成する
+
+$username = "ino9dev"
+$password = "ino9dev's password"
+$auth = $username + ":" + $password
+
+
+# 44kByte
+

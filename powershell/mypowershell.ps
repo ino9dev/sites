@@ -48,7 +48,9 @@ function CommandletName {
 #
 ############################################################
 # 44KByteのサイズの任意の文字列のファイルを生成する
-New-Item -Type file -Value {Get-Random -Count 100 (0..1)} test_$
+$value = "0" * (44 * 1024)
+$date = (Get-Date).ToString("yyyyMMddhhmmss")
+New-Item -Type file -Value $value "test$date"
 
 # urlencodeを行う
 # デフォルトではライブラリがロードされていないのでしておく

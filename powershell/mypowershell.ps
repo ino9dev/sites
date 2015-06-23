@@ -10,7 +10,7 @@
 # 連想配列（ハッシュテーブル）を使う
 # @{k1=v1,k2=v2) this is defined as [hashtable]
 @{"a"=1;"b"=2}.keys | % {Write $_} # list of names
-@{"a"=1;"b"=2}.Values | % {Write $_} # list of values
+@{"a"=1;"b"=2}.values | % {Write $_} # list of values
  
 # Todo 直接操作すると操作できない件の調査、オブジェクトの型が違うのか、
 $h = @{"a"=1};$h.Add("b",2);Write $h
@@ -89,7 +89,7 @@ function Get-RandomStr {
     param(
         [Parameter(ValueFromPipeline=$true,Mandatory=$true)]
         [int32]$Count = 10,
-        $Charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!"#$%&\`('.ToCharArray()
+        char[]$Charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!"#$%&\`('.ToCharArray()
     )
     begin{}
     process{
@@ -117,3 +117,80 @@ Get-RandomStr -Count 10
 # random walk 2
 # 100000の数字の中から100個をランダムで取り出し、商が0の場合は+1、1の場合は-1し、それをsumした値を出力する
 Get-Random -Count 100 (0..100000) | % {switch($_ % 2){0{1}1{-1}}} | measure  -sum | select -ExpandProperty Sum
+
+############################################################
+#
+# ファイルシステム系
+#
+############################################################
+# あるフォルダ配下
+
+# フォルダのみ検索
+
+# ある更新日付のファイルのみ検索
+
+# あるサイズのファイルのみ検索
+
+############################################################
+#
+# テスト用ツールダウンロード
+#
+############################################################
+function DownloadTestTools {
+    <#
+    .DESCRIPTION テスト用のツールをダウンロードします。テストタイプによって、ダウンロードするツール群を指定します。
+    #>
+    param(
+        [Parameter(ValueFromPipeline=$true)]
+        [String]$Today=((Get-Date).ToString("yyyyMMddhhmmss")),
+        [String]$Dirname="Download_$Today",
+        [String]$BaseDir=".",
+        [String]$Path="$BaseDir\\$Dirname",
+        [String[]]$Target=("LT"),
+        [HashTable]$ToolsGroup=@{
+            "LT"=@{
+                # "Java 6"="";
+                "apache-jmeter-2.13.zip"="http://ftp.tsukuba.wide.ad.jp/software/apache//jmeter/binaries/apache-jmeter-2.13.zip";
+                #"Fiddler 4"="";
+                #"Atom"="";
+                #"Firefox"="";
+            };
+            #Automated Test
+            #"AT"=@{
+            #    ""="";
+            #    ""="";
+            #};
+            #"AP"=@{
+            #};
+            #"NW"=@{
+            #    "Wireshark"="";
+            #}
+            #"COMMON"=@{
+            #    "Eclipse"="";
+            #}
+        }
+    )
+    begin{
+        #create download folder
+        # TODO 既にフォルダが存在すればどうかを確認
+        # TODO DL先の空き容量を確認
+        # New-Item -ItemType directory -Path "$BaseDir\\$Dirname"
+        md -Path $Path | out-null
+    }
+    process{
+        # more beautiful but this code didn't work..
+        #$ToolsGroup |
+        #    % getEnumerator |
+        #        % getEnumerator | % {$key = $($_.key);$value = $($_.value);Write "key=$key,value=$value"}
+        foreach($Tools in $ToolsGroup.values){
+           foreach($ToolKey in $Tools.keys){
+                Write-Host -NoNewLine "Start Downloading $ToolKey"
+                Invoke-WebRequest -Uri  $Tools[$ToolKey] -Outfile "$Path\$ToolKey"
+            }
+        }
+    }
+    end{
+        Write ""
+    }
+}
+DownloadTestTools

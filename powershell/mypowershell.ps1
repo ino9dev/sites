@@ -258,13 +258,14 @@ Get-RandomStr -Count 100
 # 前述のGet-BasicAuthを使用する
 (0..10) | % {Get-BasicAuth -Username $_.ToString("USER000") -Password $_.ToString("PASS000")}
 
-# お遊び
-# random walk 1
-(0..99) | % {@("a","b") | Get-Random} | {switch($_){"a"{-1} "b"{+1}}}
+# 1 dimensional simple random walk
+# 無限回繰り返した場合に、点がある位置に存在する確率は正規分布で示される。
+# 以下の例では、100回のコイントスを10000回試行している
+# depend on function Get-RandomStr
 
-# random walk 2
-# 100000の数字の中から100個をランダムで取り出し、商が0の場合は+1、1の場合は-1し、それをsumした値を出力する
-Get-Random -Count 100 (0..100000) | % {switch($_ % 2){0{1}1{-1}}} | measure  -sum | select -ExpandProperty Sum
+# ((0..99) | % {Get-RandomStr -Charset "01" -Count 1} | % {switch($_){"a"{-1} "b"{+1}}} | Measure -Sum |select -ExpandProperty Sum
+
+(1..100) | % {(1..100) | % {Get-RandomStr -Charset "01" -Count 1} | % {switch($_){"0"{-1} "1"{+1}}} | Measure -Sum | % {echo "$_.Sum"}}
 
 ############################################################
 #
@@ -298,10 +299,12 @@ function DownloadTestTools {
         [String[]]$Target=("LT","COMMON"),
         [HashTable]$ToolsGroup=@{
             "COMMON"=@{
-                "jdk-6u45-windows-x64.exe"="http://download.oracle.com/otn/java/jdk/6u45-b06/jdk-6u45-windows-x64.exe";
                 "eclipse-modeling-mars-R-win32-x86_64.zip"="http://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/mars/R/eclipse-modeling-mars-R-win32-x86_64.zip";
                 "AtomSetup.exe"="https://atom.io/download/windows";
+                "WinSCP"="";
+                "BZ"="";
                 "FireFox Setup Stub 38.05"="https://download.mozilla.org/?product=firefox-stub&os=win&lang=ja";
+                "teraterm-4.87.exe"="http://osdn.jp/projects/ttssh2/downloads/63335/teraterm-4.87.exe/";
             };
             "LT"=@{
                 "apache-jmeter-2.13.zip"="http://jmeter.apache.org/software/apache//jmeter/binaries/apache-jmeter-2.13.zip";
@@ -309,9 +312,9 @@ function DownloadTestTools {
                 "fiddler-2setup.exe"="http://www.telerik.com/download/fiddler/fiddler4";
                 "WinMerge-2.14.0-jp-80-x64-Setup.exe.zip"="http://www.geocities.co.jp/SiliconValley-SanJose/8165/WinMerge-2.14.0-jp-80-x64-Setup.exe.zip";
             };
-            #"NW"=@{
-            #    "Wireshark"="";
-            #}
+            "NW"=@{
+                "Wireshark-win64-1.12.6"="https://2.na.dl.wireshark.org/win64/Wireshark-win64-1.12.6.exe";
+            }
             #Automated Test
             #"AT"=@{
             #    ""="";
@@ -333,16 +336,17 @@ function DownloadTestTools {
         #$ToolsGroup |
         #    % getEnumerator |
         #        % getEnumerator | % {$key = $($_.key);$value = $($_.value);Write "key=$key,value=$value"}
+        Write-Host "Donwload Start.`n"
         foreach($Tools in $ToolsGroup.values){
            foreach($ToolKey in $Tools.keys){
                 Write-Host -NoNewLine "Start Downloading $ToolKey"
                 Invoke-WebRequest -Uri  $Tools[$ToolKey] -Outfile "$Path\$ToolKey"
-                Write-Host -NoNewLine "Done."
+
             }
         }
+        Write-Host "Donwload Done.`n"
     }
     end{
         # todo ダウンロードできているか確認する
-        Write ""
     }
 }

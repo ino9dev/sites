@@ -21,7 +21,7 @@
 ;; C-h
 (global-set-key "\C-h" 'delete-backward-char)
 
-;; default encoding
+;; default encodingはutf8
 (prefer-coding-system 'utf-8)
 (set-default 'buffer-file-coding-system 'utf-8-with-signature)
 (setq ruby-insert-encoding-magic-comment nil)
@@ -76,7 +76,6 @@
 ;; autoinsert (for template)
 (require 'autoinsert)
 (add-hook 'find-file-hooks 'auto-insert)
-(setq auto-insert-directory "~/lisp/insert/")
-
-
-
+(setq auto-insert-directory "lisp/insert/")
+(setq auto-insert-alist
+      (append '((".*_minutes\\.txt" . "minutes-insert.txt")) auto-insert-alist))

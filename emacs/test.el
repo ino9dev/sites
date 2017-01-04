@@ -22,8 +22,10 @@
 
 ;; 非破壊関数（副作用ののない関数）
 (setq lst2 '(1 2 3))
-(reverse lst2)  ;; '(3 2 1)
-(print lst2)    ;; '(1 2 3)
+;; '(3 2 1)
+(reverse lst2)
+;; '(1 2 3)
+(print lst2)
 
 ;; スコープ
 ;;;; スコープには２種類あり、レキシカルスコープでもうひとつはダイナミックスコープ
@@ -52,19 +54,13 @@
   (defun scope-test (x) (list x y))
   (scope-test 1)) ;; (1 10)
 
-;; クロージャ =? ローカル状態を持つ関数
-(let ((idx 0))
-  (defun inc () (setq idx (+ idx 1)))
-  (defun dec () (setq idx (- idx 1))))
+;; emacsにはクロージャがない
+;; Common Lispであれば、以下動作するはず
+(setf f
+      (let ((i 0))
+	(lambda () (incf i))))
 
-;1
-(inc)
-;2
-(inc)
-;1
-(dec)
-;0
-(dec)
+(funcall f)
 
 
 ;; 関数のキーワードパラメータ
@@ -99,13 +95,142 @@
 (eq 1 (e 1))
 
 ;; 合成関数
-;; fs .. function list(可変）
-(defun mycompose(&rest fs))
+;; fs .. function list(可変）の関数リスト
+;; 
+;; fn1でfunction listの最初の初期値にまずは適用する
+;; その結果に対して、あとは初期値
+;;
+;; ref "OnLisp" http://www.asahi-net.or.jp/~kc7k-nd/onlispjhtml/
 
-;; リスト関数 - last
+;; 関数fとgから、合成関数f.g = f(g(x))を作る
+;; 関数をひとつづつ取り出して、適用していく
+;; memo まだcompose動作しない
+(defun compose(&rest fs)
+  (if fs
+      (let* ((fn1 (car (last fs)))
+	    (fno (butlast fs)))
+	#'(lambda (&rest args)
+	    (reduce #'funcall fno :from-end t :initial-value (apply fn1 args))))
+    #'identity))
+
+;; reduceするのは引数の方
+
+(reduce #'list `(1 2 3 4 5) :initial-value 0)
+(reduce #'(lambda (x y) (+ x y)) `(1 2 3 4 5) :initial-value 0)
+
+
+(funcall #'(lambda (x) x) 1)
+
+(funcall (compose #'+1 #'oddp) 1 2 3)
+(funcall (compose #'+1 #'oddp) `(1))
+
+(reduce (lambda (x y) (+ x y)) `(1 2 3))
+
+((let ((fno `(#'+1 #'/ #'oddp))) (lambda (&rest args)
+				  (reduce (funcall args :from-end t fno)))
+
+;; not empty list equals t
+(let ((l `(1))) (if l 1 2))
+
+;; empty list equals nil
+(let ((l `())) (if l 1 2))
+
+
+;; リスト関数
+;; スーパー基本
+;; car/cdr .. cons（dotpair）の前ポインタ側と後ポインタ側を取り出す
+;; carの方は、要素が一つしかないので、list形式ではなく要素そのものを取り出す
+;; 1
+(car (cons 1 (cons 2 3)))
+;; (2 . 3)
+(cdr (cons 1 (cons 2 3)))
+;; `1
+(car `(1 2 3 4 5))
+;; `(2 3 4 5)
+(cdr `(1 2 3 4 5))
+
+;; 末尾再帰などで出てくるのが以下のようなcar/cdrの使い方にその深遠さを感じる
+;; 末尾再帰 ... 
+(defun fact (xs)
+  (if (eq xs nil)
+      1
+    (* (car xs) (fact (cdr xs)))))
+
+;; 120
+(fact `(1 2 3 4 5))
+;; 以下と同じ
+(* (* (* (* (* 1 1) 2) 3) 4) 5)
+
+;; 空リストにcar/cdrをかけるとnil
+; nil
+(cdr `())
+; nil
+(car `())
+
+;; というか、結果的には以下と同じだよね...
+(* 1 2 3 4 5)
+
+;; last関数 .. 最後の要素をリストで返す
+;; `(3)
 (last `(1 2 3))
-;; リスト関数 - last以外
+;; butlast関数 .. 最後の要素以外をリストで返す
+;; `(1 2)
 (butlast `(1 2 3))
+;; nth .. n番目の要素を返す,0番目は1個目
+;; 2
+(nth 1 `(1 2 3))
+
+;; 論理演算(論理関数?)
+;; (t t t nil)
+(let ((test `((t t) (t nil) (nil t) (nil nil))))
+  (mapcar (lambda (x) (or (nth 0 x) (nth 1 x))) test))
+;; (t nil nil nil)
+(let ((test `((t t) (t nil) (nil t) (nil nil))))
+  (mapcar (lambda (x) (and (nth 0 x) (nth 1 x))) test))
+
+;; [note]
+;;
+;; andのfunction descriptionにはこう書いてある
+;; いわゆるjavaとかのandと同じ振る舞いをする
+;; tのところまでは評価されnil(false)が発生したところで、評価を停止する
+;; Eval args until one of them yields nil, then return nil.
+;; 評価対象のいくつかの引数のうち一つがnilを生じるならば、(and関数は）nilを返す
+;; The remaining args are not evalled at all.
+;; 残った引数は全く評価されない
+;; If no arg yields nil, return the last arg's value.Eval args until one of them yields nil,
+;; then return nil.
+;; The remaining args are not evalled at all.
+;; 残った引数は全く評価されない
+;; If no arg yields nil, return the last arg's value.
+;; もし、引数がnilを生じないなら、最後の引数の値を返す
+
+;; テストしてみる
+;; テスト対象は4で偶数であり、4で割り切れる数
+;; 2の場合 -> 最初のevenpはt で mod4pもtの場合は、mod4p側もt
+;; t
+((lambda (x)
+   (flet ((mod4p (x) (if (eq 0 (mod x 4)) t nil)))
+     (and (evenp x) (mod4p x)))) 4)
+;; 2の場合 -> 最初のevenpはt で mod4pはnilの場合は、mod4p側のnilが返却されていると考えられる
+;; nil
+((lambda (x)
+   (flet (
+	  (mod4p (x) (if (eq 0 (mod x 4)) t nil))
+	  (eq4 (x) (if (eq 4 x) t nil)))
+     (and (evenp x) (mod4p x) (eq4 x)))) 8)
+
+;; 分岐関数
+;; (t nil) -> (nil t)
+;; 数学的には場合分け
+(mapcar (lambda (x) (if (eq x t) nil t)) `(t nil))
+
+;; 分岐マクロ
+;; 1 -> one
+;; 2-> two
+;; 2-> three
+(mapcar (lambda (x) (case x (1 'one) (2 'two) (3 'three))) `(1 2 3))
+
+(e
 
 ;; 高階関数
 ;; ref http://www.ne.jp/asahi/alpha/kazu/elisp.html
@@ -113,7 +238,20 @@
   (if (null ls)
       knil
     (funcall kons (car ls) (foldr kons knil (cdr ls)))))
-(foldr 'cons nil '(1 2 3))
+
+(foldr #'cons nil '(1 (2 3) 4 (5 (6 7))))
+
+(reduce #'list `(1 2 3 4 5) :from-end t)
+(reduce #'list `(1 2 3 4 5) :from-end nil)
+
+(mapcan #'(lambda (x) (and (numberp x) (list x))) '(a 1 b c 3 4 d 5))
+(mapcar #'(lambda (x) (and (numberp x) (list x))) '(a 1 b c 3 4 d 5))
+
+(funcall (lambda (x) (and (numberp x) (evenp x))) 2)
+
+
+(and (numberp 1) (list 1))
+
 
 ;; 合成関数
 ;; ref http://www.ne.jp/asahi/alpha/kazu/elisp.html
@@ -136,7 +274,6 @@
 
 ;; 逆関数
 
-
 ;; 代入の一般化
 (destructuring-bind
     (a b c d) '(0 1 2 3) (list a b c d))
@@ -150,11 +287,9 @@
 ((lambda () (values 1 2 3)))
 
 ;; 多値の受け取りを一般化する
-(defmacro mvbind (&rest args)
-    `(multiple-value-bind ,@args))
-(multiple-value-bind (a b c) (values 1 2 3) (setq x (+ a b)) (setq y (+ x c)) (print c))
-(mvbind (a b c) `(1 2 3))
-(multiple-value-bind (a b c) `(1 2 3) (princ a))
+(defmacro mbind (vars args fn)
+  `(multiple-value-bind ,vars ,args ,fn))
+(mbind (a b c) `(1 2 3) (format "%d,%d,and %d" a b c))
 
 ;; local関数
 (let ((f (lambda (x) (* x x)))) (funcall f 10))
@@ -175,7 +310,9 @@
 ;; リスト操作（や高階関数など）
 ;; filterっぽい関数
 (remove-if #'(lambda (x) (not (numberp x))) '(a 1 2 3 4 f)) ;; (1 2 3 4)
-(remove-if #'(lambda (x) (numberp x)) '(a 1 2 3 4 f)) ;; (1 2 3 4)
+(remove-if #'(lambda (x) (numberp x)) '(a 1 2 3 4 f)) ;; (a f)
+;; 現在以下の関数は非推奨となっている
+(remove-if-not #'(lambda (x) (numberp x)) '(a 1 2 3 4 f)) ;; (1 2 3 4)
 
 ;; filter関数をremove-if-notでマクロ化する
 (defmacro filter (selector lst) `(remove-if-not ,selector ,lst))
@@ -203,7 +340,6 @@
    (cons "last" (islast `()))
    ))
 
-
 ;; group関数（集合にわける）
 ;; 末尾再帰を利用する
 ;; 末尾再帰が無限ループにならないようにする
@@ -218,34 +354,28 @@
       (cons (if (consp rest) (subseq source 0 n) source)
 	    (group rest n)))))
 
-(defun iszero (x)
-    "alias of zerop"
-    (zerop x))
-
-(defun isconscell (xs)
-    "alias of consp"
-    (consp xs))
-
 (consable `())
 (group '(1 2 3 4 5 6) 2)
 
 ;; 利用している関数を確認
-;; endp リストの最後かを判定する
+;; endp リストの最後か
 ;; t
 (endp `())
 ;; nil
 (endp `(1))
 
+;; consp consかどうか
 ;; nil
 (consp 1)
 ;; t
 (consp `(1 2))
 
 ;; subseq function
-;; list の n th and m thまでを取り出す
+;; list の from n th to m thまでを取り出す
 ;; (1 2 3 4 5)
-(subseq `(1nnnnnnnn 2 3 4 5) 0 5)
+(subseq `(1 2 3 4 5) 0 5)
 ;;(2 3 4)
+;;   idx->0 1 2 3 4
 (subseq `(1 2 3 4 5) 1 4)
 
 ;; nthchar function
@@ -261,10 +391,15 @@
 (cons 1 `(2 3))
 ;((1 2) 2 3)
 (cons (list 1 2) (list 3 4))
+;((1 2) (3 4))
+(cons `(1 2) (cons `(3 4 ) nil))
+;;(1 2 3 4)
+(append `(1 2) `(3 4))
 
 ;; シンボルの生成 gensym
 (dolist (x `(1 2 3)) (gensym))
 (let ((x (gensym))) (print x))
+
 
 (defmacro fn (expr) '#',(rbuild expor))
 (defun rbuild (expr)
@@ -281,14 +416,9 @@
 (defun build-compose (fns)
   (let ((g (gensym)))
     `(lambda (,g) ,(labels ((rec (fns) (if fns `(,(rbuild (car fns)) ,(rec (cdr fns))) g))) (rec fns)))))
+
 (macroexpand (fn (and integerp oddp)))
 (fn (and integerp oddp))
-
-(values
-  (and t t)
-  (and t nil)
-  (and nil t)
-  (and nil nil))
 
 (values
   (and t t)
@@ -324,7 +454,130 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; my macro
+;; test-simple.el
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'test-simple)
+(defun E (x) x)
+(assert-equal (E 1) 1)
+(assert-equal (E t) t)
+(assert-t (and (E 1) 1))
+(assert-nil (and (not (E 1)) 1))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; my func or macros
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun iszero (x)
+    "alias of zerop"
+    (zerop x))
 
+(defun isconscell (xs)
+    "alias of consp"
+    (consp xs))
+
+(split-string "ho ge ho ge")
+(string-to-char "g")
+(int-to-string 1234)
+
+
+;; baselist
+;; coeeficences list
+
+;; (1  -1  1)
+;; (a1 a2 a3)
+
+(let
+    ((clist `(1 -1 -1))
+     (blist `(a1 a2 a3)))
+  (mapcar (lambda (x) (* (car x) (cdr x))) 
+
+(defmacro fomula (&rest clst &rest blst)
+  (cons (cons -1 (* x x)) (cons 1 (* x)) (cons 0 (expt x 0))))
+
+(lambda (x y z) (expt x 2))
+
+(setq lst (cons `(1 2) `(3 4)))
+
+(dolist (x (list `(1 2) `(2 3)) sum) (setq z (* (nth 0 x) (nth 1 x))))
+
+(let ((x 0) (y 0) (z 0)) (mapcar (lambda (xs) (* (nth 0 xs) (nth 1 xs))) (list `(1 x) `(3 y) `(5 z))))
+
+
+;;
+;; 末尾再帰
+;; 実装のイメージ
+;; (defun fname (lst) (if 停止条件 (何らかの処理 (lstの要素ひとつ目)) (fname (lstのひとつ目以外の要素))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; applied or experimental mathematics
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 微分する
+;; 引数に関数と、何で微分するかを渡す
+;; case1) １変数の場合
+;;   target x
+;;   (defun f (x) (* x x)) -> (lambda (x) ((f(+ x 0.1) - (f x))/0.1)
+;; case2) 多変数の場合
+;;   target x
+;;   (defun f (x y) (+ x y)) -> (lambda (x) (((f
+;; case3) 三角関数の場合
+;;   target x
+;;   (defun f (x) (sin x))
+;; 指定した変数での微分結果としての関数が返却させる
+(defun diff (fbody target)
+  "return diffed function"
+  (eval
+   (car (read-from-string
+     (concat
+      "("
+      (format "lambda (%s) " target)
+      "(/ "
+      "(- "
+      (replace-regexp-in-string
+       (format "%s" target)
+       (format "(+ %s 0.000001)" target)
+       (format "%s" fbody))
+      " "
+      (format "%s" fbody)
+      ")"
+      " " 
+      "0.000001)"
+      ")"
+      ")"
+      )))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; diff2
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; 関数を与えた際に、その微分関数を返す
+;;
+;; 引数
+;;   fn関数そのものを渡せるようにしたバージョン（無名関数）
+;; また、多変数について微分可能にする
+;; f(x)を与えた場合、再帰関数のようにd = 微小な差分 f(x + d) - f(x) / dをとってfを即時実行しないで返す
+(defun diff2(fn target)
+  "return diffrencial function of FN
+FN is a function, TARGET is a list of differncial target."
+  (eval
+   (let* (
+	  (delta 0.0000001)
+	  (ttarget target)
+	(dtarget (mapcar (lambda (e) `(+ ,e ,delta)) ttarget)))
+    `(lambda (,@ttarget) (/ (- (,fn ,@dtarget) (,fn ,@ttarget)) ,delta)))))
+
+;; x^2/dx≒ x
+(funcall (diff2 (lambda (x) (* x x)) `(x)) 1)
+;; x^2+2x+1/dx≒2x+2
+(funcall (diff2 (lambda (x) (+ (* x x) (* 2 x) 1)) `(x)) 1)
+;; d(sinx)/dx ≒ -cosx
+;; memo 誤差が大きいので動作がかなり怪しい、要テスト
+(- (cos (/ pi 2)))
+(funcall (diff2 (lambda (x) (sin x)) `(x)) (/ pi 2))
+;; d(cosx)/dx ≒sinsx
+(- (sin (/ pi 2)))
+(funcall (diff2 (lambda (x) (cos x)) `(x)) (/ pi 2))

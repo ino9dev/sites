@@ -5,6 +5,13 @@
 ;;
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; パッケージシステムを利用する
+;;; ref http://emacs.rubikitch.com/test-simple/
+(package-initialize)
+(setq package-archives
+      '(("gnu"   . "http://elpa.gnu.org/packages/")
+	("melpa" . "http://melpa.org/packages/")
+	("org"   . "http://orgmode.org/elpa/")))
 
 ;;; 必要なライブラリの呼び出し
 (require 'cl)
@@ -18,8 +25,10 @@
 
 ;; .#* とかのバックアップファイルを作らない
 (setq auto-save-default nil)
-;; C-h
+;; C-hを１文字削除操作に割当て
 (global-set-key "\C-h" 'delete-backward-char)
+;; C-xC-hを関数
+(global-set-key "\C-x\C-h" 'describe-function)
 
 ;; default encodingはutf8
 (prefer-coding-system 'utf-8)
@@ -79,3 +88,4 @@
 (setq auto-insert-directory "lisp/insert/")
 (setq auto-insert-alist
       (append '((".*_minutes\\.txt" . "minutes-insert.txt")) auto-insert-alist))
+

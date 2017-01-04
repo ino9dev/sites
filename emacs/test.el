@@ -1,26 +1,13 @@
 ;; データ構造
-;; integer
-(type-of 1)
-;; float
-(type-of 1.0)
-;; string
-(type-of "1")
-;; vector
-(type-of [])
-
-;; cons
-;; (1 . 2)
-(type-of (cons 1 2))
-;; cons(as list) ... last element is nil
-(type-of (cons 1 (cons 2 nil)))
-(cons 1 (cons 2 nil))
+;; ("integer" "float" "symbol" "string" "vector" "cons")
+(mapcar (lambda (x) (format "%s" (type-of x))) `(1 1.0 a "1" [] `()))
 
 ;; 破壊的関数（副作用のある関数）
 (setq lst1 '(1 2 3))
 (nreverse lst1) ;; (3 2 1)
 (print lst1)    ;; (1) 破壊的以上の破壊...
 
-;; 非破壊関数（副作用ののない関数）
+;; 非破壊関数（副作用のない関数）
 (setq lst2 '(1 2 3))
 ;; '(3 2 1)
 (reverse lst2)
@@ -31,7 +18,6 @@
 ;;;; スコープには２種類あり、レキシカルスコープでもうひとつはダイナミックスコープ
 ;;;; Lispは両方を持つ
 ;;;; レキシカルスコープの例
-
 ;;;; 自由変数 ... ある関数に束縛されていない、動的に変化する変数（以下、free）
 ;;;; 束縛変数 ... ある関数に束縛されている変数
 ;;;; 関数のどこに位置しているかで、自由と束縛は変換する
@@ -62,7 +48,6 @@
 
 (funcall f)
 
-
 ;; 関数のキーワードパラメータ
 ;; optional
 (let
@@ -82,12 +67,22 @@
   )
 
 ;; 関数のキーワードパラメータ
-;; 応用
+;; case文めっちゃ便利
 ;; ref Common Lispと関数型プログラミングの基礎
+;; (3 -1 2)
+(let
+    (
+     (f (lambda (x y &key op)
+	  (case op
+	    (:min (- x y))
+	    (:add (+ x y))
+	    (:mul (* x y))))))
+  (values (funcall f 1 2 :op :add) (funcall f 1 2 :op :min) (funcall f 1 2 :op :mul)))
+
 ((lambda (x y &key op)
    (case op
      (:add (+ x y))
-     (:mul (* x y)))) 1 2 :op :add)
+     (:mul (* x y)))) 1 2 :op :mul)
 
 
 ;; 恒等写像
@@ -149,6 +144,84 @@
 ;; `(2 3 4 5)
 (cdr `(1 2 3 4 5))
 
+;; 等価関数
+;; ref http://eli.thegreenplace.net/2004/08/08/equality-in-lisp
+;; 良くない例
+;; 処理系によってはtになり，処理系によってはtにならない
+(eq 1 1)
+(eq 'a 'a)
+
+;; 同じクラスの同一の数字、同一の文字であることを判定するには、eqlを使うことになっている。
+;; ref http://g000001.cddddr.org/1198855317
+;; t
+(eql 1 1)
+;; nil
+(eql 1 1.0)
+;; t
+(eql 'a 'a)
+;; listの同一性にはequalを使う
+;; nil
+(eq `(1 2) `(1 2))
+;; t
+(equal `(1 2) `(1 2))
+
+;; function的同型はどうだろう？
+;; t
+(equal (lambda (x) ()) (lambda (x) ()))
+;; nil
+;; すげぇ！
+(equal (lambda (x) ()) (lambda (x) (x)))
+
+;; subseq function
+;; list の from n to length mまでを取り出す
+
+;; nil
+;;   idx->0 1 2 3 4
+;;   len->1 2 3 4 5
+(subseq `(1 2 3 4 5) 0 0)
+
+;; (1)
+;;   idx->0 1 2 3 4
+;;   len->1 2 3 4 5
+(subseq `(1 2 3 4 5) 0 1)
+
+;; (1 2 3)
+;;   idx->0 1 2 3 4
+;;   len->1 2 3 4 5
+(subseq `(1 2 3 4 5) 0 3)
+
+;; (1 2 3 4 5)
+(subseq `(1 2 3 4 5) 0 5)
+
+;;(2 3)
+;;   idx->0 1 2 3 4
+;;   len->1 2 3 4 5
+
+(subseq `(1 2 3 4 5) 1 3)
+;;(2 3 4)
+;;   idx->0 1 2 3 4
+;;   len->1 2 3 4 5
+(subseq `(1 2 3 4 5) 1 4)
+;; n+1番目以降をcdrする
+(nthcdr 2 `(1 2 3 4 5)) ; (3 4 5)
+(nthcdr 5 `(1 2 3 4 5)) ; nil
+;; rest function  equal cdr
+;; `(2 3)
+(rest `(1 2 3))
+;; t
+(eq (cdr `(1 2 3)) (rest `(1 2 3)))
+
+;; cons function = concat list
+;;(1 2 3)
+(cons 1 `(2 3))
+;;((1 2) 3 4)
+(cons (list 1 2) (list 3 4))
+;;((1 2) (3 4))
+(cons (list 1 2) (cons (list 3 4) nil))
+
+;;(1 2 3 4)
+(append `(1 2) `(3 4))
+
 ;; 末尾再帰などで出てくるのが以下のようなcar/cdrの使い方にその深遠さを感じる
 ;; 末尾再帰 ... 
 (defun fact (xs)
@@ -187,6 +260,8 @@
 ;; (t nil nil nil)
 (let ((test `((t t) (t nil) (nil t) (nil nil))))
   (mapcar (lambda (x) (and (nth 0 x) (nth 1 x))) test))
+
+;; 
 
 ;; [note]
 ;;
@@ -229,8 +304,6 @@
 ;; 2-> two
 ;; 2-> three
 (mapcar (lambda (x) (case x (1 'one) (2 'two) (3 'three))) `(1 2 3))
-
-(e
 
 ;; 高階関数
 ;; ref http://www.ne.jp/asahi/alpha/kazu/elisp.html
@@ -320,25 +393,20 @@
 (filter #'(lambda (x) (= (mod x 2) 0)) (filter  #'(lambda (x) (numberp x)) `(a 1 b 2 c 3 d 4)))
 (filter #'(lambda (x) (if (numberp x) (if (= (mod x 2)) t))) `(a 1 b 2 c 3 d 4))
 
-;; 真理値関数
-(let
-    ((lst '(1 a 2 b 3 c 4 d))
-     ;; 数値か？     
-     (number (lambda (x) (numberp x)))
-     ;; 奇数か？
-     (even (lambda (x) (evenp x)))
-     ;; 偶数か？
-     (odd-1 (lambda (x) (not (evenp x))))
-     (odd-2 (lambda (x) (complement (evenp x))))
-     ;; リストの最後の要素かどうか
-     (islast (lambda (xs) (endp xs)))
-     ;; test function add here
-     )
-  (values
-   (cons `("number only lst") (-map number lst))
-   (cons "number only and even value only lst" (-map even (filter number lst)))
-   (cons "last" (islast `()))
-   ))
+;; 述語関数
+;; consかどうか
+;; (nil t)
+(mapcar (lambda (x) (consp x)) `(1 `(2 3)))
+
+;; listの最後かどうか
+;; (nil t)
+(mapcar (lambda (l) (endp l)) `((1) ()))
+
+;; 数値化、奇数か、偶数か
+;; (t nil t nil)
+(mapcar (lambda (x) (numberp x)) `(1 a 3 b))
+;; (nil t nil t)
+(mapcar (lambda (x) (evenp x)) `(1 2 3 4))
 
 ;; group関数（集合にわける）
 ;; 末尾再帰を利用する
@@ -354,47 +422,9 @@
       (cons (if (consp rest) (subseq source 0 n) source)
 	    (group rest n)))))
 
-(consable `())
+;; ((1 2) (3 4) (5 6)
 (group '(1 2 3 4 5 6) 2)
 
-;; 利用している関数を確認
-;; endp リストの最後か
-;; t
-(endp `())
-;; nil
-(endp `(1))
-
-;; consp consかどうか
-;; nil
-(consp 1)
-;; t
-(consp `(1 2))
-
-;; subseq function
-;; list の from n th to m thまでを取り出す
-;; (1 2 3 4 5)
-(subseq `(1 2 3 4 5) 0 5)
-;;(2 3 4)
-;;   idx->0 1 2 3 4
-(subseq `(1 2 3 4 5) 1 4)
-
-;; nthchar function
-;; n+1番目以降をcdrする
-(nthcdr 2 `(1 2 3 4 5)) ; (3 4 5)
-(nthcdr 5 `(1 2 3 4 5)) ; nil
-
-;; rest function  equal cdr
-(rest `(1 2 3))
-
-;; cons function = concat list
-;(1 2 3)
-(cons 1 `(2 3))
-;((1 2) 2 3)
-(cons (list 1 2) (list 3 4))
-;((1 2) (3 4))
-(cons `(1 2) (cons `(3 4 ) nil))
-;;(1 2 3 4)
-(append `(1 2) `(3 4))
 
 ;; シンボルの生成 gensym
 (dolist (x `(1 2 3)) (gensym))
@@ -419,12 +449,6 @@
 
 (macroexpand (fn (and integerp oddp)))
 (fn (and integerp oddp))
-
-(values
-  (and t t)
-  (and t nil)
-  (and nil t)
-  (and nil nil))
 
 ;; prefix "-" front of functoin means dash library functions call
 ;; (1 2 3 4)
@@ -504,13 +528,6 @@
 
 (let ((x 0) (y 0) (z 0)) (mapcar (lambda (xs) (* (nth 0 xs) (nth 1 xs))) (list `(1 x) `(3 y) `(5 z))))
 
-
-;;
-;; 末尾再帰
-;; 実装のイメージ
-;; (defun fname (lst) (if 停止条件 (何らかの処理 (lstの要素ひとつ目)) (fname (lstのひとつ目以外の要素))))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; applied or experimental mathematics
@@ -570,10 +587,14 @@ FN is a function, TARGET is a list of differncial target."
 	(dtarget (mapcar (lambda (e) `(+ ,e ,delta)) ttarget)))
     `(lambda (,@ttarget) (/ (- (,fn ,@dtarget) (,fn ,@ttarget)) ,delta)))))
 
-;; x^2/dx≒ x
+;; x^2/dx≒2 x
+;; 2.0000...
 (funcall (diff2 (lambda (x) (* x x)) `(x)) 1)
 ;; x^2+2x+1/dx≒2x+2
+;; 4.0000...
 (funcall (diff2 (lambda (x) (+ (* x x) (* 2 x) 1)) `(x)) 1)
+;; 6.0000...
+(funcall (diff2 (lambda (x) (+ (* x x) (* 2 x) 1)) `(x)) 2)
 ;; d(sinx)/dx ≒ -cosx
 ;; memo 誤差が大きいので動作がかなり怪しい、要テスト
 (- (cos (/ pi 2)))

@@ -99,7 +99,7 @@
 
 ;; 関数fとgから、合成関数f.g = f(g(x))を作る
 ;; 関数をひとつづつ取り出して、適用していく
-;; memo まだcompose動作しない
+;; [fixit]まだcompose動作しない
 (defun compose(&rest fs)
   (if fs
       (let* ((fn1 (car (last fs)))
@@ -108,26 +108,12 @@
 	    (reduce #'funcall fno :from-end t :initial-value (apply fn1 args))))
     #'identity))
 
-;; reduceするのは引数の方
-
-(reduce #'list `(1 2 3 4 5) :initial-value 0)
-(reduce #'(lambda (x y) (+ x y)) `(1 2 3 4 5) :initial-value 0)
-
-
-(funcall #'(lambda (x) x) 1)
-
-(funcall (compose #'+1 #'oddp) 1 2 3)
-(funcall (compose #'+1 #'oddp) `(1))
-
-(reduce (lambda (x y) (+ x y)) `(1 2 3))
-
-((let ((fno `(#'+1 #'/ #'oddp))) (lambda (&rest args)
-				  (reduce (funcall args :from-end t fno)))
-
 ;; not empty list equals t
+;; 1
 (let ((l `(1))) (if l 1 2))
 
 ;; empty list equals nil
+;; 2
 (let ((l `())) (if l 1 2))
 
 
@@ -191,31 +177,37 @@
 (subseq `(1 2 3 4 5) 0 3)
 
 ;; (1 2 3 4 5)
+;;   idx->0 1 2 3 4
+;;   len->1 2 3 4 5
 (subseq `(1 2 3 4 5) 0 5)
 
 ;;(2 3)
 ;;   idx->0 1 2 3 4
 ;;   len->1 2 3 4 5
-
 (subseq `(1 2 3 4 5) 1 3)
+
 ;;(2 3 4)
 ;;   idx->0 1 2 3 4
 ;;   len->1 2 3 4 5
 (subseq `(1 2 3 4 5) 1 4)
+
 ;; n+1番目以降をcdrする
 (nthcdr 2 `(1 2 3 4 5)) ; (3 4 5)
 (nthcdr 5 `(1 2 3 4 5)) ; nil
-;; rest function  equal cdr
+
+;; rest と cdrは同じ？
 ;; `(2 3)
 (rest `(1 2 3))
-;; t
-(eq (cdr `(1 2 3)) (rest `(1 2 3)))
 
-;; cons function = concat list
+;; t
+(equal (cdr `(1 2 3)) (rest `(1 2 3)))
+
 ;;(1 2 3)
 (cons 1 `(2 3))
+
 ;;((1 2) 3 4)
 (cons (list 1 2) (list 3 4))
+
 ;;((1 2) (3 4))
 (cons (list 1 2) (cons (list 3 4) nil))
 
@@ -233,12 +225,6 @@
 (fact `(1 2 3 4 5))
 ;; 以下と同じ
 (* (* (* (* (* 1 1) 2) 3) 4) 5)
-
-;; 空リストにcar/cdrをかけるとnil
-; nil
-(cdr `())
-; nil
-(car `())
 
 ;; というか、結果的には以下と同じだよね...
 (* 1 2 3 4 5)
@@ -292,7 +278,7 @@
    (flet (
 	  (mod4p (x) (if (eq 0 (mod x 4)) t nil))
 	  (eq4 (x) (if (eq 4 x) t nil)))
-     (and (evenp x) (mod4p x) (eq4 x)))) 8)
+     (and (evenp x) (mod4p x) (eq4 x)))) 0)
 
 ;; 分岐関数
 ;; (t nil) -> (nil t)
@@ -321,9 +307,6 @@
 (mapcar #'(lambda (x) (and (numberp x) (list x))) '(a 1 b c 3 4 d 5))
 
 (funcall (lambda (x) (and (numberp x) (evenp x))) 2)
-
-
-(and (numberp 1) (list 1))
 
 
 ;; 合成関数
@@ -476,6 +459,13 @@
     (print (car list))
     (setq list (cdr list))))
 
+;; 文字列操作関数
+(split-string "ho ge ho ge")
+(string-to-char "g")
+
+;; 数値操作関数
+(int-to-string 1234)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; test-simple.el
@@ -501,32 +491,53 @@
     "alias of consp"
     (consp xs))
 
-(split-string "ho ge ho ge")
-(string-to-char "g")
-(int-to-string 1234)
 
 
-;; baselist
-;; coeeficences list
+(flatten `(1 (2 3) 4))
 
-;; (1  -1  1)
-;; (a1 a2 a3)
+(defun flatten_instance (xs &key version)
+  (case version
+    (1 (if (endp xs)
+	   nil
+	 (append (car xs) (flatten_instance (cdr xs)))))
+    (2 (if (endp xs)
+	   nil
+	 (append (car xs) (flatten_instance (cdr xs)))))
+    )
+  )
 
-(let
-    ((clist `(1 -1 -1))
-     (blist `(a1 a2 a3)))
-  (mapcar (lambda (x) (* (car x) (cdr x))) 
+;; [fixit]リストが入れ子になっても対応できるようにする必要がある
+(defun flatten_instance (xs)
+  (if (endp xs)
+      nil
+    (if (or (listp xs sequencep xs)) (flatten_instance (cdr xs)))
+    (append (car xs) (flatten_instance (cdr xs)))
+    ))
 
-(defmacro fomula (&rest clst &rest blst)
-  (cons (cons -1 (* x x)) (cons 1 (* x)) (cons 0 (expt x 0))))
+(flatten_instance `(1 2 (3 4) (5 6)))
 
-(lambda (x y z) (expt x 2))
+(car (cdr (cdr `(1 2 (3 4) (5 6)))))
 
-(setq lst (cons `(1 2) `(3 4)))
 
-(dolist (x (list `(1 2) `(2 3)) sum) (setq z (* (nth 0 x) (nth 1 x))))
 
-(let ((x 0) (y 0) (z 0)) (mapcar (lambda (xs) (* (nth 0 xs) (nth 1 xs))) (list `(1 x) `(3 y) `(5 z))))
+(defmacro flatten (xs)
+  `(flatten_instance (,xs :version 1)))
+
+
+
+
+
+(defun flatten_ver1.1 (xs)
+  (if (endp xs)
+      nil
+    (append (car xs) (flatten (cdr xs)))))
+
+
+(flatten `((1 2) (3 4) (5 6 7 (8 9))))
+
+(append `(1) `(2 3))
+  
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

@@ -87,5 +87,8 @@
 (add-hook 'find-file-hooks 'auto-insert)
 (setq auto-insert-directory "lisp/insert/")
 (setq auto-insert-alist
-      (append '((".*_minutes\\.txt" . "minutes-insert.txt")) auto-insert-alist))
+      (append '(
+		(".*_minutes\\.txt" . "minutes-insert.txt")
+		(".*_minutes\\.md" . "minutes-insert.md")
+		) auto-insert-alist))
 

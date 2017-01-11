@@ -144,6 +144,32 @@
 ;; `(2 3 4 5)
 (cdr `(1 2 3 4 5))
 
+;;(1 2 3)
+(cons 1 `(2 3))
+;;((1 2) 3 4)
+(cons (list 1 2) (list 3 4))
+;;((1 2) (3 4))
+(cons (list 1 2) (cons (list 3 4) nil))
+
+;; リストの連想配列?
+;; ("b" . 2)
+(assoc "b" `(("a" 1) ("b" 2) ("c" 3))))
+
+
+
+;; 文字列操作関数
+;; ("ho" "ge" "ho" "ge")
+(split-string "ho ge ho ge")
+
+;; "1"
+(char-to-string 49)
+
+;; "1234"
+(int-to-string 1234)
+
+;; ヴェクタ関数
+
+
 ;; 等価関数
 ;; ref http://eli.thegreenplace.net/2004/08/08/equality-in-lisp
 ;; 良くない例
@@ -169,8 +195,7 @@
 ;; t
 (equal (lambda (x) ()) (lambda (x) ()))
 ;; nil
-;; すげぇ！
-(equal (lambda (x) ()) (lambda (x) (x)))
+(equal (lambda (x) ()) (lambda (x) (x))) ;; すげぇ!?本当かな!?
 
 ;; subseq function
 ;; list の from n to length mまでを取り出す
@@ -191,33 +216,34 @@
 (subseq `(1 2 3 4 5) 0 3)
 
 ;; (1 2 3 4 5)
+;;   idx->0 1 2 3 4
+;;   len->1 2 3 4 5
 (subseq `(1 2 3 4 5) 0 5)
 
 ;;(2 3)
 ;;   idx->0 1 2 3 4
 ;;   len->1 2 3 4 5
-
 (subseq `(1 2 3 4 5) 1 3)
+
 ;;(2 3 4)
 ;;   idx->0 1 2 3 4
 ;;   len->1 2 3 4 5
 (subseq `(1 2 3 4 5) 1 4)
+
 ;; n+1番目以降をcdrする
-(nthcdr 2 `(1 2 3 4 5)) ; (3 4 5)
-(nthcdr 5 `(1 2 3 4 5)) ; nil
-;; rest function  equal cdr
+;; (3 4 5)
+(nthcdr 2 `(1 2 3 4 5))
+
+;; nil
+(nthcdr 5 `(1 2 3 4 5))
+
+;; rest function equal cdr
 ;; `(2 3)
 (rest `(1 2 3))
 ;; t
-(eq (cdr `(1 2 3)) (rest `(1 2 3)))
+(equal (cdr `(1 2 3)) (rest `(1 2 3)))
 
-;; cons function = concat list
-;;(1 2 3)
-(cons 1 `(2 3))
-;;((1 2) 3 4)
-(cons (list 1 2) (list 3 4))
-;;((1 2) (3 4))
-(cons (list 1 2) (cons (list 3 4) nil))
+
 
 ;;(1 2 3 4)
 (append `(1 2) `(3 4))
@@ -493,6 +519,10 @@
 ;; my func or macros
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun last-a (x)
+  "return last of list as atom"
+  (car (last x)))
+
 (defun iszero (x)
     "alias of zerop"
     (zerop x))
@@ -500,14 +530,6 @@
 (defun isconscell (xs)
     "alias of consp"
     (consp xs))
-
-(split-string "ho ge ho ge")
-(string-to-char "g")
-(int-to-string 1234)
-
-
-;; baselist
-;; coeeficences list
 
 ;; (1  -1  1)
 ;; (a1 a2 a3)
@@ -602,3 +624,44 @@ FN is a function, TARGET is a list of differncial target."
 ;; d(cosx)/dx ≒sinsx
 (- (sin (/ pi 2)))
 (funcall (diff2 (lambda (x) (cos x)) `(x)) (/ pi 2))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; gen-snipet-select-oneline
+;; 指定した言語で、あるファイルから１行だけフィルタするsnipetを生成する
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun gen-snipet-select-oneline (lang)
+  (interactive ("filename" filename))
+  ;; 引数を得る
+  (let ((snippet ""))
+    (case lang
+      (bash
+       (setq snippet (format
+	"cat <<filename>> | head <<targetnum-1>> | tail -1")))
+      (powershell
+       (format
+	"Get-Content <<filename>> | select -skiip <<targetnum-1>> -first 1"))
+      (java
+       (format
+	"File file = new FileReader(\"<<filename>>\");\nint linecount = 0;\nwhile(!line = file.readline()){\n\tif(<<targetcount>>.equals(<<linecount>>)){\n\t\tSystem.out.println(line);}\n\t\tlinecount=linecount+1;\n\t}\n}"))
+      )
+    (insert "\n" snippet))
+  )
+
+(gen-snipet-select-oneline 'bash)
+(gen-snipet-select-oneline 'powershell)
+(gen-snipet-select-oneline 'java)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; gen-snipet-foreach-if
+;; 指定した言語で、繰り返し処理をするsnipetを生成する
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; gen-snipet-find-by-keyword
+;; 指定した言語で、あるファイルからある言葉を含むファイルを検索する
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+

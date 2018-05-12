@@ -23,24 +23,12 @@
 ;; Windowのセッティング
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ウィンドウ操作をCtrl+x+nで次タブへ移動
-;;(global-set-key (kbd "C-x n") (lambda () (interactive) (other-window 1)))
-;; from https://qiita.com/saku/items/6ef40a0bbaadb2cffbce
-(defun other-window-or-split (val)
-  (interactive)
-  (when (one-window-p)
-;    (split-window-horizontally) ;split horizontally
-    (split-window-vertically) ;split vertically
-  )
-  (other-window val))
-;;(global-set-key [C-tab] (lambda () (interactive) (progn (message "hoge") (other-window    1))))
-;;(global-set-key (kbd "<C-S-tab>") (lambda () (interactive) (other-window -1)))
 ;; ウィンドウ操作をCtrl+xt+pで前タブへ移動
 (global-set-key (kbd "C-x p") (lambda () (interactive) (other-window -1)))
 (global-set-key (kbd "C-x n") (lambda () (interactive) (other-window  1)))
 
 ;; not to display menubar
 (menu-bar-mode -1)
-
 (setq frame-title-format
       (format "%%f - Emacs@%s" (system-name)))
 
@@ -71,24 +59,11 @@
 (set-default 'buffer-file-coding-system 'utf-8-with-signature)
 (setq ruby-insert-encoding-magic-comment nil)
 
-(global-set-key "\C-c\C-r" 'window-resizer)
-
 ;; japanese input method mozc
 (require 'mozc)
 (set-language-environment "Japanese")
 (setq default-input-method "japanese-mozc")
 (prefer-coding-system 'utf-8)
-
-;; not to display toolbar
-
-
-;; not to display scrollbar
-;;(set-scroll-bar-mode nil)
-
-(define-minor-mode sticky-buffer-mode
-  "Make the current window always display this buffer."
-  nil " sticky" nil
-  (set-window-dedicated-p (selected-window) sticky-buffer-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -166,8 +141,8 @@
     )
   (run-hooks 'my-ide-hook))
 
-;; memo add-hookとどう違うのか？
-(provide 'my-ide-mode)
 
 ;; memo
 ;; (add-hook 'name 'func) -> M-x name で func を callする、funcはdefnされたもの
+;; M-x で provideされる
+(provide 'my-ide-mode)

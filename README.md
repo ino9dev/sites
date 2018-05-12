@@ -1,6 +1,6 @@
 # sites
 
-These are for ino9dev(ino9oni)'s sites:
+ino9dev(ino9oni)'s sites experimental codes here
 
 - environments/configurations
 - experimental mathematics
@@ -10,7 +10,8 @@ These are for ino9dev(ino9oni)'s sites:
 - my lovers(musics/daw/games)
 - any utilties(excel vba/powershells)
 
-License is MIT (MIT license http://opensource.org/licenses/mit-license.php)
+Above codes written by ino9oni under MIT.(MIT license http://opensource.org/licenses/mit-license.php)
+Above codes is partially depended on the others written codes and these codes is under each software license specified. 
 
 on Sites  [ino9oni](http://sites.google.com/site/ino9oni/)
 on Twitter [@inoque](https://twitter.com/inoque)
